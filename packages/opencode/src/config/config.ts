@@ -166,6 +166,7 @@ export namespace Config {
 
   async function installDependencies(dir: string) {
     if (Installation.isLocal()) return
+    if (Flag.OPENCODE_DISABLE_AUTOUPDATE) return
 
     const pkg = path.join(dir, "package.json")
 
