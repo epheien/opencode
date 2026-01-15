@@ -141,7 +141,7 @@ export const BashTool = Tool.define("bash", async () => {
           permission: "external_directory",
           patterns: Array.from(directories),
           always: Array.from(directories).map((x) => path.dirname(x) + "*"),
-          metadata: {},
+          metadata: { command: params.command },
         })
       }
 

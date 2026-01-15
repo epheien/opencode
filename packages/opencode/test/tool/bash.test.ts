@@ -118,6 +118,7 @@ describe("tool.bash permissions", () => {
         )
         const extDirReq = requests.find((r) => r.permission === "external_directory")
         expect(extDirReq).toBeDefined()
+        expect(extDirReq!.metadata.command).toBe("cd ../")
       },
     })
   })
@@ -146,6 +147,7 @@ describe("tool.bash permissions", () => {
         const extDirReq = requests.find((r) => r.permission === "external_directory")
         expect(extDirReq).toBeDefined()
         expect(extDirReq!.patterns).toContain("/tmp")
+        expect(extDirReq!.metadata.command).toBe("ls")
       },
     })
   })
