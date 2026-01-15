@@ -62,6 +62,7 @@ describe("tool.bash permissions", () => {
         expect(requests.length).toBe(1)
         expect(requests[0].permission).toBe("bash")
         expect(requests[0].patterns).toContain("echo hello")
+        expect(requests[0].metadata.command).toBe("echo hello")
       },
     })
   })
@@ -90,6 +91,7 @@ describe("tool.bash permissions", () => {
         expect(requests[0].permission).toBe("bash")
         expect(requests[0].patterns).toContain("echo foo")
         expect(requests[0].patterns).toContain("echo bar")
+        expect(requests[0].metadata.command).toBe("echo foo && echo bar")
       },
     })
   })
