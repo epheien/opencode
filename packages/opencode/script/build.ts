@@ -195,6 +195,19 @@ for (const item of targets) {
   })
 
   await $`rm -rf ./dist/${name}/bin/tui`
+
+  // Copy UI static files from packages/app/dist
+  const appDistPath = path.join(dir, "../app/dist")
+  if (fs.existsSync(appDistPath)) {
+    await $`cp -r ${appDistPath} ./dist/${name}/bin/app-dist`
+    console.log(`Copied UI static files to dist/${name}/bin/app-dist`)
+  } else {
+    console.warn(`Warning: ${appDistPath} not found. Building UI first...`)
+    await $`bun run build`.cwd(path.join(dir, "../app"))
+    await $`cp -r ${appDistPath} ./dist/${name}/bin/app-dist`
+    console.log(`Built and copied UI static files to dist/${name}/bin/app-dist`)
+  }
+
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {

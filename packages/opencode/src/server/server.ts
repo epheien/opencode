@@ -6,6 +6,10 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { streamSSE } from "hono/streaming"
 import { proxy } from "hono/proxy"
+import { serveStatic } from "hono/bun"
+import path from "path"
+import { fileURLToPath } from "url"
+import fs from "fs"
 import { basicAuth } from "hono/basic-auth"
 import z from "zod"
 import { Provider } from "../provider/provider"
@@ -51,6 +55,34 @@ export namespace Server {
 
   let _url: URL | undefined
   let _corsWhitelist: string[] = []
+
+  function getUIStaticPath(): string {
+    const candidates = [
+      path.join(path.dirname(process.execPath), "app-dist"),
+      path.join(process.cwd(), "../app/dist"),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../../app/dist"),
+    ]
+    for (const candidate of candidates) {
+      if (fs.existsSync(path.join(candidate, "index.html"))) {
+        return candidate
+      }
+    }
+    return candidates[0]
+  }
+
+  function shouldReturnIndexHTML(requestPath: string, root: string): boolean {
+    // Root and explicit index.html requests
+    if (requestPath === "/" || requestPath === "/index.html") {
+      return true
+    }
+    // Check if file exists in static directory
+    const filePath = path.join(root, requestPath)
+    if (fs.existsSync(filePath)) {
+      return false // File exists, serve it normally
+    }
+    // File doesn't exist, likely a SPA route
+    return true
+  }
 
   export function url(): URL {
     return _url ?? new URL("http://localhost:4096")
@@ -558,21 +590,30 @@ export namespace Server {
             })
           },
         )
-        .all("/*", async (c) => {
-          const path = c.req.path
+        .use("/*", async (c, next) => {
+          const root = getUIStaticPath()
+          const requestPath = c.req.path
 
-          const response = await proxy(`https://app.opencode.ai${path}`, {
-            ...c.req,
-            headers: {
-              ...c.req.raw.headers,
-              host: "app.opencode.ai",
-            },
-          })
-          response.headers.set(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; media-src 'self' data:; connect-src 'self' data:",
-          )
-          return response
+          // Check if file exists
+          const filePath = path.join(root, requestPath)
+          if (fs.existsSync(filePath)) {
+            // Serve static file
+            return serveStatic({ root })(c, next)
+          }
+
+          // For SPA routes, serve index.html
+          if (requestPath === "/" || requestPath === "/index.html" || !requestPath.includes(".")) {
+            const indexPath = path.join(root, "index.html")
+            const content = Bun.file(indexPath)
+            return c.body(content.stream(), {
+              headers: {
+                "Content-Type": "text/html; charset=utf-8",
+              },
+            })
+          }
+
+          // Unknown route
+          return next()
         }) as unknown as Hono,
   )
 
