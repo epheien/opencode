@@ -79,6 +79,7 @@ export namespace Config {
   }
 
   export async function installDependencies(dir: string) {
+    if (Flag.OPENCODE_DISABLE_AUTOUPDATE) return
     const pkg = path.join(dir, "package.json")
     const targetVersion = Installation.isLocal() ? "*" : Installation.VERSION
 
